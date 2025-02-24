@@ -1,0 +1,27 @@
+{
+  "name": "@supercat1337/ls-cache",
+  "version": "1.0.0",
+  "description": "Cache system based on localStorage",
+  "license": "MIT",
+  "author": "SuperCat1337",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "test": "c8 ava",
+    "preinstall": "npm i -g esbuild && npm i -g rollup",
+    "build": "npm run remove_type_files && npm run build_esm && npm run build_esm_min && npm run create_types",
+    "build_esm_min": "esbuild --minify --bundle --platform=neutral --legal-comments=none ./src/index.js --outfile=./dist/ls-cache.bundle.esm.min.js",
+    "build_esm": "rollup ./src/index.js --file ./dist/ls-cache.esm.js --format es",
+    "create_types": "npx -p typescript tsc --project my.tsconfig.types.json",
+    "remove_type_files": "del /q *.d.ts *.d.ts.map && cd dist && del /s /q *.d.ts *.d.ts.map && cd .."
+  },
+  "devDependencies": {
+    "@rollup/plugin-node-resolve": "^15.2.3",
+    "@types/node": "^22.10.6",
+    "ava": "^6.2.0",
+    "c8": "^10.1.3",
+    "esbuild": "^0.23.0",
+    "happy-dom": "^16.7.2",
+    "rollup": "^4.18.1"
+  }
+}

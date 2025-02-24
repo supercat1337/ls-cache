@@ -6,6 +6,20 @@
   "author": "SuperCat1337",
   "type": "module",
   "main": "index.js",
+  "homepage": "https://github.com/supercat1337/ls-cache",
+  "repository": "https://github.com/supercat1337/ls-cache",
+  "keywords": [
+    "cache",
+    "localStorage",
+    "cache system",
+    "cache storage",
+    "cache data",
+    "cache manager",
+    "cache manager system",
+    "cache manager storage",
+    "cache manager data",
+    "cache manager manager"
+  ],
   "scripts": {
     "test": "c8 ava",
     "preinstall": "npm i -g esbuild && npm i -g rollup",

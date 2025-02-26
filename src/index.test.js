@@ -39,10 +39,10 @@ test("CacheStorage (write, read)", async (t) => {
   t.is(cache.read("https://example.com"), null);
 });
 
-test("CacheStorage (getHash, readKey)", (t) => {
+test("CacheStorage (getKeyName, readKey)", (t) => {
   const cache = new CacheStorage();
 
-  let key = cache.getHash("https://example.com");
+  let key = cache.getKeyName("https://example.com");
   cache.write("https://example.com", "Hello, world!", 1);
   let keyData = cache.readKey(key);
 
@@ -60,7 +60,7 @@ test("CacheStorage (removeKey)", (t) => {
   const cache = new CacheStorage();
 
   let url = "https://example123.com";
-  let key = cache.getHash(url);
+  let key = cache.getKeyName(url);
   cache.write(url, "Hello, world!", 1);
   cache.removeKey(key);
 
@@ -72,7 +72,7 @@ test("CacheStorage (readKey with wrong timestamps)", (t) => {
   const cache = new CacheStorage();
   let url = "https://example312.com";
 
-  let key = cache.getHash(url);
+  let key = cache.getKeyName(url);
 
   cacheStorageConfig.window.localStorage.setItem(
     cache.prefix + "." + key + ".value",
@@ -91,10 +91,16 @@ test("CacheStorage (readKey with wrong timestamps)", (t) => {
 
   let keyData = cache.readKey(key);
 
+  cache.setKey(key, "Hello, world!", 1);
+  cacheStorageConfig.window.localStorage.removeItem(
+    cache.prefix + "." + key + ".value"
+  );
+
+  keyData = cache.readKey(key);
   t.is(keyData, null);
 });
 
-test("CacheStorage (getKeys, removeAll)", (t) => {
+test("CacheStorage (getKeyNames, removeAll)", (t) => {
   const cache = new CacheStorage();
 
   cacheStorageConfig.window.localStorage.clear();
@@ -103,30 +109,30 @@ test("CacheStorage (getKeys, removeAll)", (t) => {
   cache.write("https://example9.com", "Hello, world!", 1);
   cache.write("https://example8.com", "Hello, world!", 1);
 
-  let keys = cache.getKeys();
+  let keys = cache.getKeyNames();
 
   let keysArray = Array.from(keys);
 
   t.is(keys.length, 2);
   cache.removeKey(keysArray[0]);
 
-  keys = cache.getKeys();
+  keys = cache.getKeyNames();
   t.is(keys.length, 1);
 
   keysArray = Array.from(keys);
   cache.removeKey(keysArray[0]);
 
-  keys = cache.getKeys();
+  keys = cache.getKeyNames();
   t.is(keys.length, 0);
 
   cache.write("https://example9.com", "Hello, world!", 1);
   cache.write("https://example8.com", "Hello, world!", 1);
 
-  keys = cache.getKeys();
+  keys = cache.getKeyNames();
   t.is(keys.length, 2);
 
   cache.removeAll();
-  keys = cache.getKeys();
+  keys = cache.getKeyNames();
   t.is(keys.length, 0);
 });
 
@@ -137,7 +143,7 @@ test("CacheStorage (removeOldKeys)", (t) => {
 
   let url = "https://example314.com";
 
-  let key = cache.getHash(url);
+  let key = cache.getKeyName(url);
 
   cacheStorageConfig.window.localStorage.setItem(
     cache.prefix + "." + key + ".value",

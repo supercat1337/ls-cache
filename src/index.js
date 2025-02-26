@@ -30,12 +30,12 @@ class CacheStorage {
   }
 
   /**
-   * Returns a base-36 hash of a given string.
-   * @param {string} text - The string to hash.
+   * Returns a key of a given string.
+   * @param {string} text - The string to encode to key.
    * @returns {string} The hash of the input string.
    */
-  getHash(text) {
-    return cacheStorageConfig.hash(text);
+  getKeyName(text) {
+    return cacheStorageConfig.keyEncoder(text);
   }
 
   /**
@@ -46,7 +46,7 @@ class CacheStorage {
    * @param {number} ttl - The time-to-live (in seconds) for the cached record.
    */
   write(url, value, ttl) {
-    let key = this.getHash(url);
+    let key = this.getKeyName(url);
     this.setKey(key, value, ttl);
   }
 
@@ -57,7 +57,7 @@ class CacheStorage {
    * @returns {string|null} The value of the record if it exists, otherwise null.
    */
   read(url) {
-    let key = this.getHash(url);
+    let key = this.getKeyName(url);
     let keyData = this.readKey(key);
     if (keyData === null) {
       return null;
@@ -80,20 +80,24 @@ class CacheStorage {
    */
   readKey(key) {
     let start_str = this.#ls.getItem(`${this.prefix}.${key}.start`);
-    let end_str = this.#ls.getItem(`${this.prefix}.${key}.end`);
-    let value = this.#ls.getItem(`${this.prefix}.${key}.value`);
+    let start = parseInt(start_str);
 
-    if (start_str === null || end_str === null || value === null) {
+    if (isNaN(start)) {
+      this.removeKey(key);
       return null;
     }
 
-    let start = parseInt(start_str);
+    let end_str = this.#ls.getItem(`${this.prefix}.${key}.end`);
     let end = parseInt(end_str);
 
-    if (isNaN(start) || isNaN(end)) {
-      this.#ls.removeItem(`${this.prefix}.${key}.start`);
-      this.#ls.removeItem(`${this.prefix}.${key}.end`);
-      this.#ls.removeItem(`${this.prefix}.${key}.value`);
+    if (isNaN(end)) {
+      this.removeKey(key);
+      return null;
+    }
+
+    let value = this.#ls.getItem(`${this.prefix}.${key}.value`);
+    if (value === null) {
+      this.removeKey(key);
       return null;
     }
 
@@ -120,7 +124,7 @@ class CacheStorage {
    * Retrieves all keys in the cache.
    * @returns {string[]} An array of all keys in the cache.
    */
-  getKeys() {
+  getKeyNames() {
     /** @type {Set<string>} */
     let keys = new Set();
 
@@ -188,10 +192,20 @@ class CacheStorage {
   }
 }
 
-const cacheStorageConfig = {
-  /** @type {*} */
-  window: globalThis,
-  hash : hash,
-};
+class CacheStorageConfig {
+  /**
+   * The global object. 
+   * @type {*} 
+   * */
+  window = globalThis;
+
+  /**
+   * The function used to encode keys. 
+   * @type {(text: string) => string} 
+   * */
+  keyEncoder = hash;
+}
+
+const cacheStorageConfig = new CacheStorageConfig();
 
 export { CacheStorage, cacheStorageConfig };

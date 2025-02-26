@@ -34,7 +34,7 @@ class CacheStorage {
    * @param {string} text - The string to hash.
    * @returns {string} The hash of the input string.
    */
-  getHash(text) {
+  getKeyName(text) {
     return cacheStorageConfig.hash(text);
   }
 
@@ -46,7 +46,7 @@ class CacheStorage {
    * @param {number} ttl - The time-to-live (in seconds) for the cached record.
    */
   write(url, value, ttl) {
-    let key = this.getHash(url);
+    let key = this.getKeyName(url);
     this.setKey(key, value, ttl);
   }
 
@@ -57,7 +57,7 @@ class CacheStorage {
    * @returns {string|null} The value of the record if it exists, otherwise null.
    */
   read(url) {
-    let key = this.getHash(url);
+    let key = this.getKeyName(url);
     let keyData = this.readKey(key);
     if (keyData === null) {
       return null;
@@ -120,7 +120,7 @@ class CacheStorage {
    * Retrieves all keys in the cache.
    * @returns {string[]} An array of all keys in the cache.
    */
-  getKeys() {
+  getKeyNames() {
     /** @type {Set<string>} */
     let keys = new Set();
 

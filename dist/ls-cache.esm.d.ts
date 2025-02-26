@@ -6,7 +6,7 @@ export class CacheStorage {
      * @param {string} text - The string to hash.
      * @returns {string} The hash of the input string.
      */
-    getHash(text: string): string;
+    getKeyName(text: string): string;
     /**
      * Stores a record in localStorage using a hashed URL as the key.
      *
@@ -45,7 +45,7 @@ export class CacheStorage {
      * Retrieves all keys in the cache.
      * @returns {string[]} An array of all keys in the cache.
      */
-    getKeys(): string[];
+    getKeyNames(): string[];
     /**
      * Removes all records in the cache.
      */

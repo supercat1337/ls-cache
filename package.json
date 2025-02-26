@@ -1,6 +1,6 @@
 {
   "name": "@supercat1337/ls-cache",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Cache system based on localStorage",
   "license": "MIT",
   "author": "SuperCat1337",

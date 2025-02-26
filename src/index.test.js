@@ -17,13 +17,14 @@ const window = new Window({ url: "https://localhost:8080" });
 
 test("CacheStorage error", (t) => {
   t.throws(() => {
-    cacheStorageConfig.window = globalThis;
+    // @ts-ignore
+    cacheStorageConfig.storage = undefined;
     new CacheStorage();
   });
-  cacheStorageConfig.window = window;
+  cacheStorageConfig.storage = window.localStorage;
 });
 
-cacheStorageConfig.window = window;
+cacheStorageConfig.storage = window.localStorage;
 
 test("CacheStorage (write, read)", async (t) => {
   await sleep(2000);
@@ -74,25 +75,25 @@ test("CacheStorage (readKey with wrong timestamps)", (t) => {
 
   let key = cache.getKeyName(url);
 
-  cacheStorageConfig.window.localStorage.setItem(
+  cacheStorageConfig.storage.setItem(
     cache.prefix + "." + key + ".value",
     "Hello, world!"
   );
 
-  cacheStorageConfig.window.localStorage.setItem(
-    cache.prefix + "." + key + ".start",
+  cacheStorageConfig.storage.setItem(
+    cache.prefix + "." + key + ".created",
     "Hello, world!"
   );
 
-  cacheStorageConfig.window.localStorage.setItem(
-    cache.prefix + "." + key + ".end",
+  cacheStorageConfig.storage.setItem(
+    cache.prefix + "." + key + ".expires",
     "Hello, world!"
   );
 
   let keyData = cache.readKey(key);
 
   cache.setKey(key, "Hello, world!", 1);
-  cacheStorageConfig.window.localStorage.removeItem(
+  cacheStorageConfig.storage.removeItem(
     cache.prefix + "." + key + ".value"
   );
 
@@ -103,8 +104,8 @@ test("CacheStorage (readKey with wrong timestamps)", (t) => {
 test("CacheStorage (getKeyNames, removeAll)", (t) => {
   const cache = new CacheStorage();
 
-  cacheStorageConfig.window.localStorage.clear();
-  cacheStorageConfig.window.localStorage.setItem("foo", "bar");
+  cacheStorageConfig.storage.clear();
+  cacheStorageConfig.storage.setItem("foo", "bar");
 
   cache.write("https://example9.com", "Hello, world!", 1);
   cache.write("https://example8.com", "Hello, world!", 1);
@@ -136,34 +137,51 @@ test("CacheStorage (getKeyNames, removeAll)", (t) => {
   t.is(keys.length, 0);
 });
 
-test("CacheStorage (removeOldKeys)", (t) => {
+test("CacheStorage (removeKeysCreatedBefore)", (t) => {
   const cache = new CacheStorage();
 
-  cacheStorageConfig.window.localStorage.clear();
+  cacheStorageConfig.storage.clear();
 
   let url = "https://example314.com";
 
   let key = cache.getKeyName(url);
 
-  cacheStorageConfig.window.localStorage.setItem(
+  cacheStorageConfig.storage.setItem(
     cache.prefix + "." + key + ".value",
     "Hello, world!"
   );
 
-  cacheStorageConfig.window.localStorage.setItem(
-    cache.prefix + "." + key + ".start",
+  cacheStorageConfig.storage.setItem(
+    cache.prefix + "." + key + ".created",
     "0"
   );
 
   let now = Math.ceil(Date.now() / 1000);
 
-  cacheStorageConfig.window.localStorage.setItem(
-    cache.prefix + "." + key + ".end",
+  cacheStorageConfig.storage.setItem(
+    cache.prefix + "." + key + ".expires",
     (now + 1).toString()
   );
 
-  cache.removeOldKeys(new Date());
+  cache.removeKeysCreatedBefore(new Date());
 
   let value = cache.read(url);
   t.is(value, null);
+});
+
+test("CacheStorage (removeOutdatedKeys)", (t) => {
+  const cache = new CacheStorage("test");
+
+  cache.write("https://example314.com", "Hello, world!", 1);
+  cache.write("https://example315.com", "Hello, world!", 1);
+
+  let keys = cache.getKeyNames();
+  t.is(keys.length, 2);
+
+  setTimeout(() => {
+    cache.removeOutdatedKeys();
+    keys = cache.getKeyNames();
+    t.is(keys.length, 0);
+  }, 2000);
+  
 });

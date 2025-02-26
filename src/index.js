@@ -17,16 +17,17 @@ function hash(str) {
 
 class CacheStorage {
   prefix = "cache";
-  #ls;
+  /** @type {Storage} */
+  #storage;
 
   constructor(prefix = "cache") {
-    this.#ls = cacheStorageConfig.window.localStorage;
-
-    if (!this.#ls) {
-      throw new Error("localStorage is undefined");
-    }
 
     this.prefix = prefix;
+    this.#storage = cacheStorageConfig.storage;
+
+    if (!this.#storage) {
+      throw new Error("storage is undefined");
+    }
   }
 
   /**
@@ -63,12 +64,6 @@ class CacheStorage {
       return null;
     }
 
-    let now = Math.ceil(Date.now() / 1000);
-    if (now > keyData.end) {
-      this.removeKey(key);
-      return null;
-    }
-
     return keyData.value;
   }
 
@@ -76,32 +71,38 @@ class CacheStorage {
    * Retrieves a record from localStorage for a given key.
    *
    * @param {string} key - The key to read the record from.
-   * @returns {{start: number, end: number, value: string}|null} The record containing start, end, and value if all exist, otherwise null.
+   * @returns {{created: number, expires: number, value: string}|null} The record containing created, expires, and value if all exist, otherwise null.
    */
   readKey(key) {
-    let start_str = this.#ls.getItem(`${this.prefix}.${key}.start`);
-    let start = parseInt(start_str);
+    let created_str = this.#storage.getItem(`${this.prefix}.${key}.created`);
+    let created = parseInt(created_str);
 
-    if (isNaN(start)) {
+    if (isNaN(created)) {
       this.removeKey(key);
       return null;
     }
 
-    let end_str = this.#ls.getItem(`${this.prefix}.${key}.end`);
-    let end = parseInt(end_str);
+    let expires_str = this.#storage.getItem(`${this.prefix}.${key}.expires`);
+    let expires = parseInt(expires_str);
 
-    if (isNaN(end)) {
+    if (isNaN(expires)) {
       this.removeKey(key);
       return null;
     }
 
-    let value = this.#ls.getItem(`${this.prefix}.${key}.value`);
+    let value = this.#storage.getItem(`${this.prefix}.${key}.value`);
     if (value === null) {
       this.removeKey(key);
       return null;
     }
 
-    return { start, end, value };
+    let now = Math.ceil(Date.now() / 1000);
+    if (now > expires) {
+      this.removeKey(key);
+      return null;
+    }
+
+    return { created, expires, value };
   }
 
   /**
@@ -115,9 +116,9 @@ class CacheStorage {
     let now = Math.ceil(Date.now() / 1000);
     let expiration = now + ttl;
 
-    this.#ls.setItem(`${this.prefix}.${key}.start`, now.toString());
-    this.#ls.setItem(`${this.prefix}.${key}.end`, expiration.toString());
-    this.#ls.setItem(`${this.prefix}.${key}.value`, value);
+    this.#storage.setItem(`${this.prefix}.${key}.created`, now.toString());
+    this.#storage.setItem(`${this.prefix}.${key}.expires`, expiration.toString());
+    this.#storage.setItem(`${this.prefix}.${key}.value`, value);
   }
 
   /**
@@ -128,8 +129,8 @@ class CacheStorage {
     /** @type {Set<string>} */
     let keys = new Set();
 
-    for (let i = 0; i < this.#ls.length; i++) {
-      let key = this.#ls.key(i);
+    for (let i = 0; i < this.#storage.length; i++) {
+      let key = this.#storage.key(i);
       if (key && key.startsWith(`${this.prefix}.`)) {
         let k = key.replace(`${this.prefix}.`, "").split(".")[0];
 
@@ -149,13 +150,20 @@ class CacheStorage {
   }
 
   /**
+   * Removes all outdated keys from the cache. 
+   */
+  removeOutdatedKeys() {
+    this.getKeyNames();
+  }
+
+  /**
    * Removes all records in the cache.
    */
   removeAll() {
-    for (let i = 0; i < this.#ls.length; i++) {
-      let key = this.#ls.key(i);
+    for (let i = 0; i < this.#storage.length; i++) {
+      let key = this.#storage.key(i);
       if (key && key.startsWith(`${this.prefix}.`)) {
-        this.#ls.removeItem(key);
+        this.#storage.removeItem(key);
       }
     }
   }
@@ -166,25 +174,25 @@ class CacheStorage {
    * @param {string} key - The key to remove records for.
    */
   removeKey(key) {
-    this.#ls.removeItem(`${this.prefix}.${key}.start`);
-    this.#ls.removeItem(`${this.prefix}.${key}.end`);
-    this.#ls.removeItem(`${this.prefix}.${key}.value`);
+    this.#storage.removeItem(`${this.prefix}.${key}.created`);
+    this.#storage.removeItem(`${this.prefix}.${key}.expires`);
+    this.#storage.removeItem(`${this.prefix}.${key}.value`);
   }
 
   /**
    * Removes all records from the cache that were created before a specified date.
    *
-   * @param {Date} date - The date (in milliseconds since the Unix epoch) before which records should be removed.
+   * @param {Date} created_date - The date object representing the date before which records should be removed.
    */
-  removeOldKeys(date) {
-    let timestamp = Math.ceil(date.getTime() / 1000);
+  removeKeysCreatedBefore(created_date) {
+    let timestamp = Math.ceil(created_date.getTime() / 1000);
 
-    for (let i = 0; i < this.#ls.length; i++) {
-      let key = this.#ls.key(i);
+    for (let i = 0; i < this.#storage.length; i++) {
+      let key = this.#storage.key(i);
       if (key && key.startsWith(`${this.prefix}.`)) {
         let k = key.replace(`${this.prefix}.`, "").split(".")[0];
         let keyData = this.readKey(k);
-        if (keyData !== null && keyData.start < timestamp) {
+        if (keyData !== null && keyData.created < timestamp) {
           this.removeKey(k);
         }
       }
@@ -194,10 +202,10 @@ class CacheStorage {
 
 class CacheStorageConfig {
   /**
-   * The global object. 
-   * @type {*} 
-   * */
-  window = globalThis;
+   * The storage object to use for caching.
+   * @type {Storage}
+   */
+  storage = globalThis.localStorage;
 
   /**
    * The function used to encode keys. 

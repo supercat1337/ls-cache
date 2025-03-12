@@ -21,12 +21,20 @@ class CacheStorage {
   #storage;
 
   constructor(prefix = "cache") {
-
     this.prefix = prefix;
     this.#storage = cacheStorageConfig.storage;
 
     if (!this.#storage) {
       throw new Error("storage is undefined");
+    }
+
+    const k = "test." + Date.now();
+    
+    try {
+      this.#storage.setItem(k, k);
+      this.#storage.removeItem(k);
+    } catch (e) {
+      throw new Error("storage is not available");
     }
   }
 
@@ -117,7 +125,10 @@ class CacheStorage {
     let expiration = now + ttl;
 
     this.#storage.setItem(`${this.prefix}.${key}.created`, now.toString());
-    this.#storage.setItem(`${this.prefix}.${key}.expires`, expiration.toString());
+    this.#storage.setItem(
+      `${this.prefix}.${key}.expires`,
+      expiration.toString()
+    );
     this.#storage.setItem(`${this.prefix}.${key}.value`, value);
   }
 
@@ -150,7 +161,7 @@ class CacheStorage {
   }
 
   /**
-   * Removes all outdated keys from the cache. 
+   * Removes all outdated keys from the cache.
    */
   removeOutdatedKeys() {
     this.getKeyNames();
@@ -208,8 +219,8 @@ class CacheStorageConfig {
   storage = globalThis.localStorage;
 
   /**
-   * The function used to encode keys. 
-   * @type {(text: string) => string} 
+   * The function used to encode keys.
+   * @type {(text: string) => string}
    * */
   keyEncoder = hash;
 }

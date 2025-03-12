@@ -21,6 +21,13 @@ test("CacheStorage error", (t) => {
     cacheStorageConfig.storage = undefined;
     new CacheStorage();
   });
+
+  t.throws(() => {
+    // @ts-ignore
+    cacheStorageConfig.storage = {};
+    new CacheStorage();
+  });
+
   cacheStorageConfig.storage = window.localStorage;
 });
 
